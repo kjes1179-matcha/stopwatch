@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>J.A.R.V.I.S 스탑워치</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  @font-face {
+    font-family:"DSEG7";
+    src:url("https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff2") format("woff2");
+    font-weight:700; font-display:swap;
+  }
+  :root {
+    --bg:#030a12; --cyan:#4de1ff; --cyan-dim:#0c3340; --cyan-soft:#7fd6ea; --white:#e8fbff;
+    --gold:#ffc24d; --red:#ff5a4d; --green:#5dffb0; --dim:#5f8a98; --line:#1a5566;
+    --label:"Orbitron","Apple SD Gothic Neo",system-ui,sans-serif;
+    --seg:"DSEG7","Share Tech Mono",ui-monospace,Menlo,monospace;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; min-height:100vh; color:var(--white); font-family:"Apple SD Gothic Neo",system-ui,sans-serif;
+    background:
+      radial-gradient(ellipse 70% 55% at 50% 38%, #0a2a3a 0%, transparent 70%),
+      linear-gradient(#4de1ff0b 1px,transparent 1px) 0 0/36px 36px,
+      linear-gradient(90deg,#4de1ff0b 1px,transparent 1px) 0 0/36px 36px,
+      var(--bg);
+    display:flex; justify-content:center; padding:20px 14px 36px;
+  }
+  .wrap { width:100%; max-width:540px; }
+
+  /* HUD 패널 */
+  .hud { position:relative; padding:16px 16px 20px; background:#04121c99; border:1px solid var(--line);
+    box-shadow:0 0 40px #4de1ff18, inset 0 0 40px #4de1ff0c; }
+  .hud::before,.hud::after,.hud i::before,.hud i::after { content:""; position:absolute; width:22px; height:22px; border:2px solid var(--cyan); }
+  .hud::before { top:-2px; left:-2px; border-right:0; border-bottom:0; border-color:var(--red); }
+  .hud::after { top:-2px; right:-2px; border-left:0; border-bottom:0; border-color:var(--red); }
+  .hud i::before { bottom:-2px; left:-2px; border-right:0; border-top:0; }
+  .hud i::after { bottom:-2px; right:-2px; border-left:0; border-top:0; }
+
+  .bar { display:flex; justify-content:space-between; align-items:center; padding:0 6px 12px;
+    font-family:var(--label); font-size:11px; letter-spacing:.22em; color:var(--cyan-soft); }
+  .bar b { color:var(--cyan); font-weight:900; text-shadow:0 0 10px #4de1ff88; }
+  .online { display:flex; align-items:center; gap:7px; }
+  .dot { width:9px; height:9px; border-radius:50%; background:var(--cyan); box-shadow:0 0 10px var(--cyan); }
+  body.run .dot { background:var(--gold); box-shadow:0 0 10px var(--gold); }
+
+  svg.dial { display:block; width:100%; height:auto; overflow:visible; }
+  .seg-on { fill:var(--cyan); filter:drop-shadow(0 0 3px #4de1ffaa); }
+  .seg-head { fill:var(--red); filter:drop-shadow(0 0 4px #ff3b30); }
+  .seg-off { fill:var(--cyan-dim); }
+  .outer-num { font-family:var(--label); font-weight:700; font-size:15px; fill:var(--white); text-anchor:middle; dominant-baseline:central; }
+  .inner-num { font-family:var(--label); font-weight:500; font-size:8.5px; fill:#2f6577; text-anchor:middle; dominant-baseline:central; }
+  .inner-num.on { fill:var(--cyan); font-weight:900; }
+  .ghost { font-family:var(--seg); font-weight:700; font-size:54px; fill:#0c2a36; text-anchor:middle; }
+  .digits { font-family:var(--seg); font-weight:700; font-size:54px; fill:var(--white); text-anchor:middle;
+    filter:drop-shadow(0 0 6px #4de1ffcc); }
+  body.run .digits { fill:#fff6dd; filter:drop-shadow(0 0 6px #ffc24dcc); }
+  .unit-lbl { font-family:var(--label); font-weight:700; font-size:11px; fill:var(--dim); text-anchor:middle; }
+  .state-lbl { font-family:var(--label); font-weight:700; font-size:9px; letter-spacing:2px; fill:var(--cyan-soft); text-anchor:middle; }
+  body.run .state-lbl { fill:var(--gold); }
+  .cs-lbl { font-family:var(--label); font-weight:700; font-size:11px; letter-spacing:1px; fill:var(--cyan); text-anchor:middle; }
+  .deco { fill:none; stroke:var(--cyan); transform-origin:200px 200px; }
+  @media (prefers-reduced-motion:no-preference) {
+    .spin1 { animation:spin 60s linear infinite; } .spin2 { animation:spin 90s linear infinite reverse; }
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* 버튼 */
+  .controls { display:grid; grid-template-columns:1fr 1.8fr; gap:12px; margin-top:18px; }
+  .btn.rst { color:var(--red); background:#2a0b0e; box-shadow:inset 0 0 0 1px var(--red); }
+  .btn.rst small { color:#d98a8a; }
+  .btn.rst:hover:not(:disabled) { background:#3d1015; }
+  .btn.go { background:#8f1620; color:#fff; box-shadow:inset 0 0 0 1px #ff5a4d; text-shadow:0 0 10px #ff5a4d; }
+  .btn.go small { color:#ffc9c4; }
+  .btn.go:hover:not(:disabled) { background:#a81a26; }
+  .log-head button { background:none; border:1px solid var(--red); color:var(--red); font-family:var(--label); font-size:10px;
+    letter-spacing:.15em; padding:4px 10px; cursor:pointer; }
+  .log-head button:disabled { opacity:.3; cursor:default; }
+  .log-head button:hover:not(:disabled) { background:#2a0b0e; }
+  .log-head em { font-style:normal; color:var(--red); margin-left:8px; }
+  .bar::after { content:""; }
+  .hud { border-top:2px solid var(--red); }
+  .btn {
+    min-height:80px; cursor:pointer; color:var(--cyan); background:#06222e; border:0; position:relative;
+    clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);
+    font-family:var(--label); font-weight:900; letter-spacing:.14em; font-size:clamp(14px,3.8vw,19px);
+    box-shadow:inset 0 0 0 1px var(--cyan);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    transition:background .1s;
+  }
+  .btn small { font-family:"Apple SD Gothic Neo",system-ui,sans-serif; font-size:12px; letter-spacing:0; font-weight:600; color:var(--cyan-soft); }
+  .btn:hover:not(:disabled) { background:#0b3a4b; }
+  .btn:active:not(:disabled) { background:#0f4c61; }
+  .btn:disabled { opacity:.35; cursor:default; }
+  .btn:focus-visible { outline:2px solid var(--white); outline-offset:-4px; }
+  .btn.go { font-size:clamp(20px,5.5vw,28px); background:#8f1620; color:#fff; box-shadow:inset 0 0 0 1px #ff5a4d; text-shadow:0 0 10px #ff5a4d; }
+  .btn.go small { color:#ffc9c4; }
+  body.run .btn.go { background:#33260a; color:var(--gold); box-shadow:inset 0 0 0 1px var(--gold); text-shadow:0 0 10px #ffc24d88; }
+  body.run .btn.go small { color:#d9b46a; }
+
+  /* 기록 */
+  .log { margin-top:18px; border:1px solid var(--line); background:#030e16aa; }
+  .log-head { display:flex; justify-content:space-between; padding:11px 16px; font-family:var(--label);
+    font-size:11px; letter-spacing:.2em; color:var(--cyan-soft); border-bottom:1px solid var(--line); }
+  .log-head span:last-child { color:var(--cyan); }
+  ul { list-style:none; margin:0; padding:0; max-height:250px; overflow:auto; }
+  li { display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center; padding:12px 16px;
+    border-top:1px solid #0e2a35; font-family:var(--seg); font-weight:700; font-size:clamp(17px,4.6vw,24px); }
+  li:first-child { border-top:0; }
+  li .n { font-family:var(--label); font-size:11px; color:var(--dim); letter-spacing:.1em; white-space:nowrap; font-weight:700; }
+  li .split { color:var(--white); text-shadow:0 0 6px #4de1ff66; } li .total { color:var(--dim); text-align:right; font-size:.8em; }
+  li.best .split { color:var(--green); text-shadow:none; } li.worst .split { color:var(--red); text-shadow:none; }
+  li.best .n::after { content:" ▲"; color:var(--green); } li.worst .n::after { content:" ▼"; color:var(--red); }
+  .empty { padding:18px; text-align:center; color:var(--dim); font-size:14px; }
+
+  .keys { text-align:center; margin-top:16px; font-size:12px; color:var(--dim); }
+  kbd { border:1px solid var(--line); border-bottom-width:3px; padding:1px 7px; color:var(--cyan-soft); font-family:var(--label); font-size:10px; }
+  @media (max-width:520px) { .keys { display:none; } .hud { padding:12px 10px 16px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main class="hud"><i></i>
+    <div class="bar"><b>J.A.R.V.I.S · TIMER</b><span class="online"><span class="dot"></span><span id="online">ONLINE</span></span></div>
+
+    <svg class="dial" id="dial" viewBox="0 0 400 400" role="timer" aria-label="경과 시간">
+      <!-- 장식 링 (읽기 방해 없이 가장자리에만) -->
+      <circle class="deco spin1" cx="200" cy="200" r="196" stroke-width="1" stroke-dasharray="2 8" opacity=".5"/>
+      <circle class="deco spin2" cx="200" cy="200" r="97" stroke-width="1" stroke-dasharray="60 10 4 10" opacity=".35"/>
+      <circle class="deco" cx="200" cy="200" r="123" stroke-width="1" opacity=".4"/>
+      <g id="segs" transform="translate(200 200)"></g>
+      <g id="outer"></g>
+      <g id="inner"></g>
+      <text class="ghost" x="200" y="222">88:88</text>
+      <text class="digits" id="digits" x="200" y="222">00:00</text>
+      <text class="unit-lbl" id="lblL" x="152" y="244">M</text>
+      <text class="unit-lbl" id="lblR" x="248" y="244">S</text>
+      <text class="state-lbl" id="state" x="200" y="166">STANDBY</text>
+      <text class="cs-lbl" id="cs" x="200" y="266">.00</text>
+    </svg>
+
+    <div class="controls">
+      <button class="btn rst" id="reset" disabled>RESET<small>초기화 · R</small></button>
+      <button class="btn go" id="start"><span id="startLabel">START</span><small id="startSub">시작 · Space</small></button>
+    </div>
+
+    <section class="log">
+      <div class="log-head"><span>EVENT LOG <em id="count">0</em></span><button id="clearLog" disabled>CLEAR LOG</button></div>
+      <ul id="laps"></ul>
+      <div class="empty" id="empty">정지할 때마다 구간이 자동 기록됩니다</div>
+    </section>
+  </main>
+  <div class="keys"><kbd>Space</kbd> 시작/정지 &nbsp; <kbd>R</kbd> 초기화 &nbsp; <kbd>C</kbd> 기록 삭제 &nbsp;·&nbsp; 무음</div>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const NS = "http://www.w3.org/2000/svg";
+  const mk = (tag, attrs, parent) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    parent.appendChild(e); return e;
+  };
+
+  const segs = [];
+  for (let i = 0; i < 60; i++) {
+    segs.push(mk("rect", { x: -2.4, y: -154, width: 4.8, height: 24, rx: 1, class: "seg-off", transform: `rotate(${i * 6})` }, $("segs")));
+  }
+  for (let m = 0; m < 60; m += 5) {
+    const a = m * 6 * Math.PI / 180, r = 175;
+    mk("text", { class: "outer-num", x: 200 + r * Math.sin(a), y: 200 - r * Math.cos(a) }, $("outer")).textContent = m;
+  }
+  const innerEls = [];
+  for (let h = 1; h <= 12; h++) {
+    const a = h * 30 * Math.PI / 180, r = 112;
+    innerEls.push(mk("text", { class: "inner-num", x: 200 + r * Math.sin(a), y: 200 - r * Math.cos(a) }, $("inner")));
+    innerEls[h - 1].textContent = h;
+  }
+
+  let elapsed = 0, startAt = 0, raf = null, lastLap = 0;
+  const lapData = [];
+  const p = n => String(n).padStart(2, "0");
+  const now = () => elapsed + (raf ? performance.now() - startAt : 0);
+  const fmt = ms => {
+    const t = Math.floor(ms / 10), cs = t % 100, s = Math.floor(t / 100) % 60, m = Math.floor(t / 6000);
+    return p(m) + ":" + p(s) + "." + p(cs);
+  };
+
+  let lastKey = "";
+  function render() {
+    const ms = now(), tot = Math.floor(ms / 1000);
+    const h = Math.floor(tot / 3600), m = Math.floor(tot / 60) % 60, s = tot % 60;
+    const hourMode = h > 0;
+    const text = hourMode ? p(h) + ":" + p(m) : p(m) + ":" + p(s);
+    if (text !== lastKey) {
+      lastKey = text;
+      $("digits").textContent = text;
+      $("lblL").textContent = hourMode ? "H" : "M";
+      $("lblR").textContent = hourMode ? "M" : "S";
+    }
+    $("cs").textContent = hourMode ? ":" + p(s) : "." + p(Math.floor(ms / 10) % 100);
+    const f = (ms % 60000) / 1000, full = Math.floor(f), part = f - full;
+    for (let i = 0; i < 60; i++) {
+      const on = ms > 0 && i <= full;
+      segs[i].setAttribute("class", on ? (i === full ? "seg-head" : "seg-on") : "seg-off");
+      segs[i].style.opacity = i === full && ms > 0 ? 0.4 + part * 0.6 : 1;
+    }
+    const cm = Math.floor(ms / 60000);
+    innerEls.forEach((el, i) => el.setAttribute("class", "inner-num" + (cm > 0 && ((cm - 1) % 12) >= i ? " on" : "")));
+  }
+  const loop = () => { render(); raf = requestAnimationFrame(loop); };
+
+  function toggle() {
+    if (raf) {
+      elapsed += performance.now() - startAt; cancelAnimationFrame(raf); raf = null;
+      document.body.classList.remove("run"); $("state").textContent = "PAUSED"; $("online").textContent = "HOLD";
+      $("startLabel").textContent = "RESUME"; $("startSub").textContent = "재개 · Space";
+      lap(); render();
+    } else {
+      startAt = performance.now(); loop();
+      document.body.classList.add("run"); $("state").textContent = "RUNNING"; $("online").textContent = "ACTIVE";
+      $("startLabel").textContent = "STOP"; $("startSub").textContent = "정지 · Space";
+      $("reset").disabled = false;
+    }
+  }
+  // 정지할 때마다 구간을 자동 기록
+  function lap() {
+    const t = elapsed;
+    if (t - lastLap < 10) return;
+    lapData.push({ split: t - lastLap, total: t }); lastLap = t; drawLaps();
+  }
+  function clearLog() {
+    lapData.length = 0; lastLap = elapsed;
+    $("laps").innerHTML = ""; $("count").textContent = "0"; $("empty").style.display = "block"; $("clearLog").disabled = true;
+  }
+  function drawLaps() {
+    const sp = lapData.map(l => l.split), best = Math.min(...sp), worst = Math.max(...sp);
+    $("laps").innerHTML = lapData.map((l, i) => {
+      const c = lapData.length > 2 ? (l.split === best ? "best" : l.split === worst ? "worst" : "") : "";
+      return `<li class="${c}"><span class="n">LAP ${p(i + 1)}</span><span class="split">${fmt(l.split)}</span><span class="total">${fmt(l.total)}</span></li>`;
+    }).reverse().join("");
+    $("count").textContent = lapData.length; $("empty").style.display = "none"; $("clearLog").disabled = false;
+  }
+  function reset() {
+    if (raf) { elapsed += performance.now() - startAt; cancelAnimationFrame(raf); raf = null; document.body.classList.remove("run"); lap(); }
+    elapsed = 0; lastLap = 0; lastKey = "";
+    $("state").textContent = "STANDBY"; $("online").textContent = "ONLINE";
+    $("startLabel").textContent = "START"; $("startSub").textContent = "시작 · Space";
+    $("reset").disabled = true; render();
+  }
+
+  $("start").onclick = toggle; $("reset").onclick = reset; $("clearLog").onclick = clearLog;
+  document.addEventListener("keydown", e => {
+    if (e.repeat || e.metaKey || e.ctrlKey) return;
+    if (e.code === "Space") { e.preventDefault(); toggle(); }
+    else if (e.key.toLowerCase() === "c") clearLog();
+    else if (e.key.toLowerCase() === "r") reset();
+  });
+  render();
+</script>
+</body>
+</html>
